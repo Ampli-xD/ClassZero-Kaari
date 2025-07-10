@@ -155,25 +155,163 @@ ClassZero Kaari envisions a world where the creation of complex, visually engagi
 
 ## 3. System Overview
 
-ClassZero Kaari is an end-to-end, containerized platform that transforms user queries into high-quality animated slides. Its architecture leverages microservices, advanced workflow automation, and scalable cloud-native technologies. Each major service is containerized and managed via Docker Compose.
+ClassZero Kaari is a next-generation, AI-powered, end-to-end platform designed to automate the creation, rendering, management, and delivery of mathematical and educational presentations. Its architecture is a showcase of modern software engineering principles, leveraging microservices, containerization, workflow automation, distributed processing, and robust data management to deliver a product that is both powerful and adaptable.
 
-**Key Features:**
-- Automated, AI-powered content generation and rendering
-- Modular workflow automation via n8n
-- Asynchronous, distributed processing using Redis
-- Persistent, queryable storage of assets and metadata in PostgreSQL
-- Secure, monitored, and auditable operations
-- Open source and locally deployable for full data control
+### 3.1 Purpose and Philosophy
+
+At its core, Kaari is built to address the inefficiencies and limitations of traditional content creation tools. Manual slide creation is time-consuming, error-prone, and often results in inconsistent quality. Kaari’s vision is to enable users—educators, researchers, institutions, and content creators—to describe their intent in natural language and have the system handle the rest. This is achieved not only through advanced AI, but by orchestrating a suite of specialized services that work in harmony to deliver consistently high-quality results.
+
+### 3.2 End-to-End Automation
+
+Kaari’s automation is not superficial or limited to a single step; it spans the entire lifecycle:
+
+- **User Query Intake:** Users submit requests in plain language, specifying the concept, proof, or visualization they need.
+- **Contextual Enrichment:** The system augments user queries with relevant examples and metadata from its knowledge base.
+- **AI-Driven Content Generation:** An AI model generates a structured, machine-readable representation of the desired slide.
+- **Code Generation and Parsing:** Specialized parsers convert the AI output into executable code (e.g., Manim scripts for mathematical animations).
+- **Distributed Rendering:** Rendering engines process the code, producing high-quality images and videos.
+- **Persistent Storage:** All assets and metadata are stored in a robust, queryable database.
+- **Presentation Delivery:** The frontend retrieves and assembles the assets for seamless user consumption.
+
+### 3.3 Modular Microservices
+
+Kaari’s architecture is modular by design. Each major function is encapsulated in a dedicated microservice, allowing for independent development, scaling, and maintenance. This modularity ensures that the system can evolve rapidly, incorporate new technologies, and adapt to changing requirements without major rewrites.
+
+**Key Microservices:**
+
+- **n8n Workflow Engine:** Orchestrates all backend logic and integrations.
+- **Redis Broker:** Facilitates fast, asynchronous communication between services.
+- **PostgreSQL Database:** Stores all persistent data with full ACID compliance.
+- **Manim Processor:** Handles computationally intensive rendering tasks.
+- **MinIO Storage:** Provides scalable, S3-compatible object storage for large assets.
+- **HAProxy Load Balancer:** Routes and manages all incoming and internal traffic.
+- **Frontend (Next.js/React):** Interfaces with users, presenting the results of automated workflows.
+
+### 3.4 Containerization and Orchestration
+
+Every service in Kaari is containerized using Docker, ensuring consistent environments from development to production. Docker Compose is used for orchestration, simplifying deployment and scaling. This approach enables rapid prototyping, easy upgrades, and robust isolation between services.
+
+### 3.5 Security, Observability, and Control
+
+Security is woven into every layer of the system, from encrypted communications and role-based access controls to audit logging and compliance tracking. Observability is achieved through centralized logging, real-time monitoring, and health checks, allowing administrators to maintain operational excellence and quickly respond to issues.
+
+### 3.6 Open Source and Local Control
+
+Kaari is open source, giving organizations the freedom to deploy, extend, and audit the platform as needed. This transparency and control are critical for educational institutions, research organizations, and enterprises with strict compliance or data residency requirements.
+
+### 3.7 Differentiation and Impact
+
+What sets Kaari apart is the seamless integration of AI, automation, and persistent knowledge management. Unlike traditional tools that require manual effort at every step, Kaari automates the entire process, enabling users to focus on pedagogy and creativity rather than technical implementation. The result is higher quality, faster turnaround, and a continuously growing knowledge base that benefits all users.
 
 ---
 
 ## 4. Architecture Deep Dive
 
+The architecture of ClassZero Kaari is a masterclass in modern distributed systems design. It is engineered to be scalable, resilient, extensible, and observable, with each component playing a well-defined role in the overall workflow.
+
 ### 4.1 High-Level Architecture
 
-ClassZero Kaari is architected as a set of loosely coupled, containerized microservices. Each component is responsible for a specific part of the workflow, communicating via well-defined interfaces and message channels.
+The system is composed of loosely coupled microservices, each responsible for a specific domain. These services communicate via asynchronous message passing and are orchestrated by a workflow engine that ensures consistency, reliability, and traceability.
 
 **Core Components:**
+- **Frontend (Next.js/React):** The user-facing layer for query submission, result visualization, and asset management.
+- **HAProxy:** Serves as the entry point, load balancing and routing requests to the appropriate backend services.
+- **n8n Workflow Engine:** The brain of the system, orchestrating all backend processes, integrating with AI, databases, and rendering engines.
+- **Redis:** Provides fast, reliable message brokering for asynchronous communication and decoupling of services.
+- **JavaScript Code Parsers:** Transform AI-generated JSON into executable Manim code.
+- **Manim Processor (Python):** Renders high-quality videos and images from code.
+- **MinIO:** Stores all rendered assets in a scalable, S3-compatible object store.
+- **PostgreSQL:** Maintains all metadata, asset links, user activity, and audit logs.
+
+#### 4.1.1 Architecture Diagram
+
+```mermaid
+graph TD
+    User[User]
+    Frontend[Frontend]
+    HAProxy[HAProxy]
+    n8n1[n8n (AI Prompt)]
+    AI[AI Model]
+    n8n2[n8n (Slide Workflow)]
+    Redis[Redis]
+    JSParser[JS Parsers]
+    ManimProc[Manim Processor]
+    MinIO[MinIO]
+    PostgreSQL[PostgreSQL]
+
+    User --> Frontend
+    Frontend --> HAProxy
+    HAProxy --> n8n1
+    n8n1 --> AI
+    AI --> n8n2
+    n8n2 --> Redis
+    Redis --> JSParser
+    JSParser --> Redis
+    Redis --> ManimProc
+    ManimProc --> MinIO
+    ManimProc --> Redis
+    Redis --> n8n2
+    n8n2 --> PostgreSQL
+    Frontend --> PostgreSQL
+```
+
+### 4.2 Component Interactions
+
+#### 4.2.1 User Query Intake
+
+The process begins with a user submitting a query through the frontend. This request is routed by HAProxy to the n8n workflow engine, which is responsible for orchestrating all downstream processes.
+
+#### 4.2.2 AI Prompt Engineering and Contextual Enrichment
+
+n8n retrieves relevant examples and metadata from PostgreSQL, constructing a context-rich prompt for the AI model. This ensures that the AI’s output is not only accurate but also pedagogically effective.
+
+#### 4.2.3 AI Content Generation
+
+The AI model generates a structured JSON representation of the requested slide or presentation. This output is published to a Redis channel, making it available to downstream services.
+
+#### 4.2.4 Code Generation and Parsing
+
+Specialized JavaScript parsers consume the AI-generated JSON, converting it into Manim-compatible Python code. This step is crucial for bridging the gap between abstract content representations and executable rendering instructions.
+
+#### 4.2.5 Distributed Rendering
+
+The Manim Processor service listens for new code on Redis channels, rendering high-quality videos and images. Multiple processor instances can run in parallel, enabling horizontal scaling and rapid turnaround.
+
+#### 4.2.6 Asset Storage and Metadata Management
+
+Rendered assets are uploaded to MinIO, with URLs and metadata recorded in PostgreSQL. This ensures durable storage and instant access for future retrieval, reuse, and analytics.
+
+#### 4.2.7 Presentation Delivery
+
+The frontend queries PostgreSQL for asset links and metadata, assembling the final presentation for the user. This layer also supports advanced search, filtering, and knowledge management features.
+
+### 4.3 Technical Mechanisms
+
+#### 4.3.1 Containerization and Deployment
+
+All services are containerized, ensuring consistency and ease of deployment. Docker Compose is used for local orchestration, and the architecture is compatible with Kubernetes for cloud-scale deployments.
+
+#### 4.3.2 Asynchronous Communication
+
+Redis enables decoupled, event-driven communication between services. This design allows each component to scale independently and recover gracefully from failures.
+
+#### 4.3.3 Observability and Monitoring
+
+Centralized logging, health checks, and real-time dashboards provide administrators with deep visibility into system health and performance. HAProxy and n8n both expose metrics for monitoring and alerting.
+
+#### 4.3.4 Security and Compliance
+
+Role-based access controls, encrypted communications, and comprehensive audit logs ensure that the system meets the highest standards for security and compliance.
+
+### 4.4 Real-World Scenarios
+
+- **Batch Slide Generation:** Institutions can automate the creation of entire course modules, with Kaari orchestrating the generation, rendering, and storage of hundreds of slides in parallel.
+- **Collaborative Content Development:** Teams can contribute, review, and refine content collaboratively, with every change tracked and auditable.
+- **Analytics and Insights:** Administrators can analyze usage patterns, identify popular topics, and measure the impact of AI-generated content on learning outcomes.
+
+### 4.5 Differentiation
+
+Kaari’s architecture is distinguished by its modularity, extensibility, and focus on persistent knowledge. Unlike monolithic or ad hoc solutions, every component is designed for long-term evolution, seamless integration, and cumulative value creation. The result is a platform that not only automates content creation but also transforms it into a strategic asset for organizations.
 - **Frontend:** Next.js/React application for user interaction
 - **HAProxy:** Reverse proxy and load balancer
 - **n8n:** Workflow automation engine
@@ -227,50 +365,417 @@ graph TD
 
 ## 5. End-to-End Workflow Lifecycle
 
+The end-to-end workflow lifecycle in ClassZero Kaari is a meticulously engineered pipeline that transforms a user’s intent into a polished, animated educational asset. Each stage is designed for automation, transparency, and reliability, ensuring that the user’s experience is seamless and the system’s operations are robust and auditable. Below, we break down each phase in depth, illustrating the rationale, technical mechanisms, and real-world impact.
+
 ### 5.1 User Query Initiation
-- User submits a query (e.g., "Explain Pythagoras' theorem visually") via the frontend.
-- Query is routed through HAProxy to n8n.
+
+**Architectural Rationale:**
+The journey begins with the user, whose needs and curiosity drive the entire system. Kaari’s frontend is designed to accept natural language queries, lowering the barrier for content creation and enabling users to focus on ideas rather than technicalities.
+
+**Technical Mechanisms:**
+- The user enters a query (e.g., "Create a slide explaining the Pythagorean theorem visually") via the web interface.
+- The frontend validates and packages the query, attaching user metadata and context.
+- The request is routed through HAProxy, which ensures load balancing, security, and unified access to the backend.
+- HAProxy forwards the request to the n8n workflow engine, which acts as the orchestrator for all subsequent steps.
+
+**Real-World Scenario:**
+A mathematics teacher wants to quickly generate a visual proof for a classroom presentation. She types her request into Kaari’s interface and submits it, expecting a high-quality, ready-to-use asset in minutes.
+
+**Integration:**
+This step integrates user authentication, session management, and input validation, ensuring that only authorized users can initiate content requests and that all queries are well-formed.
+
+---
 
 ### 5.2 n8n Workflow: AI Preparation
-- Determines slide type (definition, proof, diagram, etc.)
-- Fetches examples from PostgreSQL to enhance the AI prompt
-- Constructs a specialized prompt for the AI
+
+**Architectural Rationale:**
+The quality of the AI’s output is heavily influenced by the context and examples provided. Kaari leverages its persistent knowledge base to augment user queries with relevant examples, ensuring that the AI’s response is pedagogically sound and contextually appropriate.
+
+**Technical Mechanisms:**
+- The n8n workflow receives the user query and analyzes it to determine the intended slide type (e.g., definition, proof, diagram).
+- It queries the PostgreSQL database for relevant examples, previous slides, and supporting material.
+- The workflow constructs a specialized prompt, combining the user’s request with curated examples and metadata.
+- This prompt is packaged and sent to the AI model for content generation.
+
+**Real-World Scenario:**
+If the user requests a “visual proof,” the workflow fetches visual proof examples from the database, ensuring that the AI understands both the format and the pedagogical intent.
+
+**Integration:**
+This step demonstrates the tight coupling between workflow automation, database access, and AI integration, maximizing the system’s ability to generate high-quality, relevant content.
+
+---
 
 ### 5.3 AI Model Generation
-- AI receives the prompt and examples
-- Generates a structured JSON representation of the slide
+
+**Architectural Rationale:**
+AI is the engine that transforms intent into structured content. By leveraging advanced natural language processing and prompt engineering, Kaari ensures that the generated output is both accurate and actionable.
+
+**Technical Mechanisms:**
+- The AI model receives the enriched prompt and processes it using state-of-the-art language models.
+- It generates a structured JSON object that describes the slide’s content, layout, and rendering instructions.
+- The output includes not only text, but also semantic markers for diagrams, animations, and metadata.
+
+**Example Output:**
+```json
+{
+  "slideType": "visual_proof",
+  "title": "Pythagorean Theorem",
+  "content": [
+    "A right triangle with squares on each side.",
+    "Step-by-step visual demonstration of a^2 + b^2 = c^2."
+  ],
+  "manimInstructions": { ... }
+}
+```
+
+**Real-World Scenario:**
+The AI generates a JSON structure that specifies not only the textual explanation but also the visual elements needed for the proof, ensuring that the downstream rendering process is fully automated.
+
+**Integration:**
+This step is the linchpin between user intent and automated production, enabling downstream services to operate on machine-readable, semantically rich content.
+
+---
 
 ### 5.4 Workflow Continuation and Message Queuing
-- AI-generated JSON is sent to a secondary n8n workflow
-- Placed on a Redis channel for downstream processing
+
+**Architectural Rationale:**
+To maximize scalability and decouple processing, Kaari employs asynchronous message passing. This allows each service to operate independently and scale according to demand.
+
+**Technical Mechanisms:**
+- The AI-generated JSON is sent to a secondary n8n workflow for further processing.
+- The workflow publishes the JSON to a dedicated Redis channel, enabling downstream consumers to react in real time.
+- Redis ensures message durability, order, and delivery guarantees.
+
+**Diagram:**
+```mermaid
+graph LR
+  AI[AI Model] -->|JSON Output| n8n2[n8n (Post-AI Workflow)]
+  n8n2 -->|Publish| Redis[Redis Channel]
+  Redis -->|Subscribe| JSParser[JS Code Type Parsers]
+```
+
+**Real-World Scenario:**
+Multiple rendering jobs can be queued and processed in parallel, allowing Kaari to handle spikes in demand without bottlenecks.
+
+**Integration:**
+This step highlights the use of message brokering and workflow chaining, enabling a highly modular and resilient architecture.
+
+---
 
 ### 5.5 JavaScript Code Type Parsers
-- Listen on Redis
-- Parse JSON and generate Manim-compatible Python code
-- Publish Manim code to Redis for rendering
+
+**Architectural Rationale:**
+Bridging the gap between AI-generated content and executable rendering code is a non-trivial challenge. Kaari solves this with specialized JavaScript parsers that translate structured JSON into Manim-compatible Python code.
+
+**Technical Mechanisms:**
+- Parsers subscribe to the Redis channel and consume new JSON messages as they arrive.
+- Each parser validates the input, ensuring it conforms to expected schemas and semantics.
+- The parser generates Manim code, handling different slide types, layouts, and animation sequences.
+- The generated code is published to another Redis channel for rendering.
+
+**Example Pseudocode:**
+```javascript
+const manimCode = parseSlideJson(jsonInput);
+publishToRedis('manim-code-channel', manimCode);
+```
+
+**Real-World Scenario:**
+A parser receives a JSON describing a “visual proof” and generates a Python script that uses Manim to animate the proof step-by-step, ready for rendering.
+
+**Integration:**
+This step demonstrates the extensibility of Kaari—new parsers can be added to support additional content types or rendering engines.
+
+---
 
 ### 5.6 Distributed Rendering
-- Manim Processor consumes Manim code from Redis
-- Renders high-quality video and images
-- Uploads assets to MinIO
-- Publishes asset URLs to Redis
+
+**Architectural Rationale:**
+Rendering high-quality videos and images is computationally intensive. Kaari’s distributed rendering architecture ensures that these tasks are handled efficiently and can scale with demand.
+
+**Technical Mechanisms:**
+- The Manim Processor service subscribes to the Redis channel for new code.
+- It executes the code in isolated environments, rendering videos and images as specified.
+- Rendered assets are uploaded to MinIO, with metadata and URLs generated for each output.
+- The processor publishes the asset URLs to Redis, signaling completion.
+
+**Diagram:**
+```mermaid
+graph LR
+  JSParser[JS Code Type Parsers] -->|Manim Code| Redis[Redis Channel]
+  Redis -->|Subscribe| ManimProc[Manim Processor]
+  ManimProc -->|Assets| MinIO[MinIO Storage]
+  ManimProc -->|URLs| Redis
+```
+
+**Real-World Scenario:**
+A batch of slides is rendered in parallel by multiple Manim Processor instances, each producing high-quality videos and images for classroom use.
+
+**Integration:**
+This step showcases Kaari’s ability to scale horizontally and handle large workloads without sacrificing performance.
+
+---
 
 ### 5.7 Database Update and Slide Registration
-- n8n workflow stores asset URLs and metadata in PostgreSQL
+
+**Architectural Rationale:**
+Persistent storage of assets and metadata is critical for traceability, reuse, and analytics. Kaari ensures that every output is durably recorded and easily accessible.
+
+**Technical Mechanisms:**
+- The n8n workflow listens for asset URLs published to Redis.
+- It updates the PostgreSQL database, registering each asset with comprehensive metadata (e.g., creation time, author, slide type, tags).
+- The database supports versioning, deduplication, and advanced search.
+
+**Example SQL:**
+```sql
+INSERT INTO slides (title, asset_url, metadata) VALUES (...);
+```
+
+**Real-World Scenario:**
+An educator can search for all slides related to a particular topic, retrieve asset links, and assemble a new presentation in minutes.
+
+**Integration:**
+This step demonstrates the synergy between workflow automation, persistent storage, and knowledge management.
+
+---
 
 ### 5.8 Presentation Delivery
-- Frontend queries PostgreSQL for asset links
-- Displays rendered content to the user
+
+**Architectural Rationale:**
+The ultimate goal is to deliver value to the user. Kaari’s frontend is designed to assemble and present assets in a way that is intuitive, responsive, and customizable.
+
+**Technical Mechanisms:**
+- The frontend queries PostgreSQL for asset links and associated metadata.
+- It assembles the assets into a coherent presentation, supporting features like search, filtering, and sequencing.
+- Users can view, download, or share assets as needed.
+
+**Real-World Scenario:**
+A student accesses a library of slides generated by Kaari, reviews animated proofs, and downloads videos for offline study.
+
+**Integration:**
+This final step closes the loop, connecting the user’s original intent with a tangible, high-quality outcome, and feeding new knowledge back into the system for future use.
+
+---
 
 ---
 
 ## 6. Backend Components
 
+The backend of ClassZero Kaari is a sophisticated assembly of modular, containerized services—each engineered for reliability, scalability, and extensibility. This section provides a comprehensive technical deep dive into each core backend component, highlighting architectural rationale, technical details, configuration, operational best practices, and real-world integration scenarios.
+
+---
+
 ### 6.1 n8n Workflow Automation
 
-At the core of ClassZero Kaari's backend lies n8n, a powerful workflow automation platform that orchestrates the entire lifecycle of slide generation and delivery. n8n's visual workflow editor allows developers and administrators to design, modify, and monitor complex automation pipelines with ease. Each workflow is composed of interconnected nodes, each representing a discrete operation such as querying the database, invoking the AI, or processing messages from Redis.
+**Architectural Rationale:**
+n8n serves as the orchestration brain of Kaari, enabling complex, multi-stage workflows to be designed, monitored, and modified with minimal friction. Its visual, node-based paradigm empowers both developers and non-developers to automate processes, integrate services, and react to events in real time.
 
-The integration of AI, database, and rendering pipelines within n8n ensures that every stage of the content creation process is tightly coordinated. For example, a single workflow might begin by accepting a user query, then branch into multiple parallel paths—one for fetching examples from PostgreSQL, another for constructing the AI prompt, and yet another for handling error recovery and notifications. This level of orchestration not only increases efficiency but also enhances the platform's resilience to failures and bottlenecks.
+**Technical Details:**
+- **Visual Workflow Editor:** Drag-and-drop interface to build and manage automation pipelines.
+- **Node Types:** Includes HTTP requests, database queries, AI invocations, message queue operations, error handling, and custom scripts.
+- **Trigger Mechanisms:** Supports event-driven, scheduled, and manual triggers.
+- **Parallelism:** Branching and joining of workflow paths for concurrent processing.
+- **Observability:** Real-time execution logs, status dashboards, and error notifications.
+
+**Configuration:**
+- Workflows are stored in a persistent PostgreSQL database.
+- Environment variables control API keys, credentials, and integration endpoints.
+- Custom nodes can be developed for specialized integrations (e.g., Manim Processor, MinIO).
+
+**Operational Considerations:**
+- Backed by Docker volumes for persistent storage.
+- Supports workflow versioning, rollback, and export/import.
+- Integrates with monitoring tools for health checks and alerting.
+
+**Integration Points:**
+- Orchestrates calls to AI services, database reads/writes, Redis pub/sub, and rendering triggers.
+- Handles error recovery, retries, and notifications for failed jobs.
+
+**Real-World Scenario:**
+A workflow accepts a user query, fetches context from PostgreSQL, constructs an AI prompt, invokes the AI, processes the result, queues rendering jobs, and updates the database—all without manual intervention.
+
+---
+
+### 6.2 Redis Message Broker
+
+**Architectural Rationale:**
+Redis acts as the high-speed backbone for asynchronous communication and decoupling between microservices. Its pub/sub and queueing capabilities allow Kaari to scale horizontally and handle bursty workloads.
+
+**Technical Details:**
+- **Pub/Sub Channels:** Used for broadcasting events (e.g., new rendering jobs, asset completion).
+- **Queues:** Task queues for distributing work among multiple consumers (e.g., rendering workers).
+- **Persistence:** Configurable snapshotting and append-only file (AOF) persistence.
+- **Performance:** In-memory storage enables sub-millisecond message delivery.
+
+**Configuration:**
+- Environment variables set host, port, and authentication.
+- Channel names are namespaced for each workflow (e.g., `kaari:render:in`).
+- Can be clustered for high availability and failover.
+
+**Operational Considerations:**
+- Monitored via Redis CLI, dashboards, and HAProxy stats.
+- Supports backup and restore using Docker volume scripts.
+
+**Integration Points:**
+- n8n publishes and subscribes to workflow events.
+- Manim Processor listens for rendering jobs and publishes results.
+- Parsers and other services react to new messages in real time.
+
+**Real-World Scenario:**
+A spike in user requests generates dozens of rendering jobs, which are queued in Redis and processed in parallel by multiple Manim Processor instances.
+
+---
+
+### 6.3 PostgreSQL Database
+
+**Architectural Rationale:**
+PostgreSQL provides ACID-compliant, relational storage for all persistent data—ensuring data integrity, auditability, and advanced querying capabilities. Its extensibility supports Kaari’s evolving data models and analytics needs.
+
+**Technical Details:**
+- **Schema:** Tables for slides, users, examples, workflow logs, and metadata.
+- **JSONB Columns:** Flexible storage for semi-structured metadata and AI outputs.
+- **Full-Text Search:** Enables rapid querying across slides, tags, and content.
+- **Transactions:** Ensures atomicity for multi-step updates (e.g., asset registration).
+- **Indexes:** Optimized for frequent queries and analytics.
+
+**Configuration:**
+- Managed via Docker Compose with persistent volumes (`pgdata_vector`).
+- Environment variables for user, password, database, and port.
+- Managed and explored using Beekeeper Studio or psql.
+
+**Operational Considerations:**
+- Daily backups via PowerShell and shell scripts.
+- Supports point-in-time recovery and restore.
+- Monitored for performance, locks, and replication lag.
+
+**Integration Points:**
+- n8n reads/writes slides, examples, and user data.
+- Frontend queries for asset links and metadata.
+- Analytics and reporting tools connect for insights.
+
+**Real-World Scenario:**
+An administrator queries the database for all slides generated in the past month, filtering by topic and usage statistics.
+
+---
+
+### 6.4 MinIO Object Storage
+
+**Architectural Rationale:**
+MinIO provides S3-compatible, scalable object storage for all large assets (videos, images, animations). It separates binary data from metadata, enabling scalable, cost-effective storage and rapid retrieval.
+
+**Technical Details:**
+- **Buckets:** Organized by asset type (e.g., `slides`, `previews`).
+- **APIs:** S3-compatible endpoints for upload, download, and lifecycle management.
+- **Access Control:** Bucket policies and credentials for secure access.
+- **Multipart Uploads:** Efficient handling of large files.
+
+**Configuration:**
+- Managed via Docker Compose with persistent volume (`minio-data`).
+- Credentials and endpoints set via environment variables.
+- Exposed on dedicated ports and proxied by HAProxy.
+
+**Operational Considerations:**
+- Supports versioning, retention, and lifecycle policies.
+- Monitored via MinIO console and HAProxy stats.
+- Backed up using Docker volume scripts.
+
+**Integration Points:**
+- Manim Processor uploads rendered assets.
+- n8n and frontend retrieve asset URLs and manage lifecycle.
+
+**Real-World Scenario:**
+A rendered video is uploaded to MinIO, and its URL is registered in PostgreSQL for instant user access.
+
+---
+
+### 6.5 Manim Processor
+
+**Architectural Rationale:**
+The Manim Processor is a dedicated microservice for rendering mathematical animations and images. It decouples computationally intensive rendering from the main workflow, enabling parallelism and fault isolation.
+
+**Technical Details:**
+- **Language:** Python 3.11 with Manim, Redis, MinIO, Pillow, and Requests libraries.
+- **Queue Consumption:** Listens on Redis for new rendering jobs.
+- **Thread Pool:** Executes multiple rendering tasks in parallel.
+- **Asset Upload:** Stores output in MinIO and publishes URLs to Redis.
+- **Graceful Shutdown:** Handles in-progress jobs and resource cleanup.
+
+**Configuration:**
+- Dockerized with system dependencies (ffmpeg, texlive-full).
+- Environment variables for Redis, MinIO, worker count, and temp directories.
+- Logging for job status, errors, and performance metrics.
+
+**Operational Considerations:**
+- Horizontal scaling by running multiple container instances.
+- Monitored via logs and health endpoints.
+- Supports retry and error handling for failed renders.
+
+**Integration Points:**
+- Consumes jobs from Redis, uploads to MinIO, notifies n8n.
+- Receives configuration and code from JavaScript parsers.
+
+**Real-World Scenario:**
+A batch of slides is rendered overnight by several Manim Processor containers, each working on a different job from the Redis queue.
+
+---
+
+### 6.6 HAProxy Load Balancer
+
+**Architectural Rationale:**
+HAProxy provides a unified entry point, load balancing, and secure routing for all backend services. It enables high availability, SSL termination, and observability.
+
+**Technical Details:**
+- **Reverse Proxy:** Routes HTTP/S traffic to n8n, MinIO, PostgreSQL, and Redis.
+- **Load Balancing:** Distributes requests across service replicas.
+- **SSL Termination:** Supports encrypted connections.
+- **Stats Interface:** Exposes real-time metrics and health checks.
+
+**Configuration:**
+- Dockerized with custom configuration files.
+- Port mappings for each backend service.
+- Managed via Docker Compose and environment variables.
+
+**Operational Considerations:**
+- Monitored via stats page and logs.
+- Supports hot reload of configuration.
+- Integrates with monitoring and alerting systems.
+
+**Integration Points:**
+- Entry point for all frontend and API traffic.
+- Proxies connections to internal services.
+
+**Real-World Scenario:**
+During a usage spike, HAProxy distributes incoming requests evenly across multiple n8n and Manim Processor instances, ensuring smooth operation.
+
+---
+
+### 6.7 Docker Compose & Networking
+
+**Architectural Rationale:**
+Docker Compose orchestrates all services, ensuring consistent, reproducible environments. Dedicated Docker networks provide secure, isolated communication between containers.
+
+**Technical Details:**
+- **Compose Files:** Define services, volumes, networks, and dependencies.
+- **Volumes:** Persist data for PostgreSQL, MinIO, and n8n.
+- **Networks:** Isolate internal traffic and expose only necessary ports.
+
+**Configuration:**
+- Version-controlled YAML files for infrastructure-as-code.
+- Environment variables for all service configuration.
+- Health checks and restart policies for resilience.
+
+**Operational Considerations:**
+- Supports local development, staging, and production deployments.
+- Automated backup and restore scripts for volumes.
+- Easy scaling and upgrades by modifying Compose files.
+
+**Integration Points:**
+- All backend services are launched, networked, and managed by Compose.
+- Volumes ensure that data persists across container restarts.
+
+**Real-World Scenario:**
+A system administrator upgrades the Manim Processor by updating the Docker image and restarting the relevant Compose service, with zero downtime for other components.
+
+---
 
 One of n8n's greatest strengths is its extensibility. New nodes and workflows can be added to support additional content types, integrate with external APIs, or implement custom business logic. This flexibility enables Kaari to evolve rapidly in response to user feedback and emerging educational trends. In real-world scenarios, n8n has been used to automate everything from batch slide generation to complex approval workflows, demonstrating its versatility and power.
 
