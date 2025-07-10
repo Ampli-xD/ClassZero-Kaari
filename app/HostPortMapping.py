@@ -1,4 +1,4 @@
-host_server = "10.10.10.220"
+host_server = "localhost"
 
 redis_port = 29111
 postgre_port = 29112

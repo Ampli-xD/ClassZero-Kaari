@@ -27,15 +27,32 @@ class EditorApp(ctk.CTkToplevel):
     def __init__(self, master, presentation_id):
         super().__init__(master)
         
-        # Configure window
-        self.configure(fg_color="#ebeaf2")  # Base color
+        # Configure window with better styling
+        self.configure(fg_color="#0f0f0f")  # Darker, more modern base
         self.resizable(True, True)
         self.state('zoomed')
         ctk.set_appearance_mode("dark")
-        self.title("ClassZero Kaari")
+        self.title("ClassZero Kaari - Presentation Editor")
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+        
+        # Add window icon effect with title bar styling
+        self.iconbitmap(default="")  # Remove default icon for cleaner look
+        
+        # Modern color scheme
+        self.colors = {
+            'bg_primary': "#0f0f0f",      # Deep black
+            'bg_secondary': "#1a1a1a",    # Dark gray
+            'bg_tertiary': "#2d2d2d",     # Medium gray
+            'accent': "#3b82f6",          # Modern blue
+            'accent_hover': "#2563eb",    # Darker blue
+            'text_primary': "#ffffff",    # Pure white
+            'text_secondary': "#a1a1aa",  # Light gray
+            'success': "#10b981",         # Green
+            'warning': "#f59e0b",         # Orange
+            'error': "#ef4444"            # Red
+        }
 
-        # Database configuration
+        # Database and Redis config remain the same...
         self.db_config = {
             'host': host_server,
             'database': 'ClassZero',
@@ -44,7 +61,6 @@ class EditorApp(ctk.CTkToplevel):
             'port': postgre_port
         }
         
-        # Redis configuration
         self.redis_config = {
             'host': host_server,
             'port': redis_port,
@@ -59,291 +75,344 @@ class EditorApp(ctk.CTkToplevel):
         self.presentation_id = presentation_id
         self.slides = []
         self.current_slide = None
-        self.slide_cards = {}  # Map slide_id to SlideCard widgets
-        self.monitoring_slides = {}  # Track slides being monitored
+        self.slide_cards = {}
+        self.monitoring_slides = {}
         
         self.setup_ui()
         self.initialize_presentation(presentation_id)
-    
+
     def setup_ui(self):
         """Setup the main UI with modern styling"""
-        # Configure grid
+        # Configure grid with padding
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
-        # Left panel - Slides frame
-        self.slides_frame = ctk.CTkFrame(self, width=300, fg_color="#1a191f", corner_radius=10)  # Secondary color
-        self.slides_frame.grid(row=0, column=0, sticky="nsew", padx=(15, 7), pady=15)
+        # Left panel - Slides frame with gradient effect
+        self.slides_frame = ctk.CTkFrame(
+            self, 
+            width=320, 
+            fg_color=self.colors['bg_secondary'], 
+            corner_radius=12,
+            border_width=1,
+            border_color=self.colors['bg_tertiary']
+        )
+        self.slides_frame.grid(row=0, column=0, sticky="nsew", padx=(20, 10), pady=20)
         self.slides_frame.grid_propagate(False)
         
         # Setup slides panel
         self.setup_slides_panel()
         
         # Right panel - Slide editor frame
-        self.editor_frame = ctk.CTkFrame(self, fg_color="#ebeaf2", corner_radius=10)  # Base color
-        self.editor_frame.grid(row=0, column=1, sticky="nsew", padx=(7, 15), pady=15)
+        self.editor_frame = ctk.CTkFrame(
+            self, 
+            fg_color=self.colors['bg_primary'], 
+            corner_radius=12,
+            border_width=1,
+            border_color=self.colors['bg_tertiary']
+        )
+        self.editor_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 20), pady=20)
         
         # Setup editor panel
         self.setup_editor_panel()
         
-        # Bottom control panel
-        self.control_frame = ctk.CTkFrame(self, height=120, fg_color="#1a191f", corner_radius=10)  # Secondary color
-        self.control_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=15, pady=(0, 15))
+        # Bottom control panel with modern styling
+        self.control_frame = ctk.CTkFrame(
+            self, 
+            height=140, 
+            fg_color=self.colors['bg_secondary'], 
+            corner_radius=12,
+            border_width=1,
+            border_color=self.colors['bg_tertiary']
+        )
+        self.control_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=20, pady=(0, 20))
         
         # Setup control panel
         self.setup_control_panel()
-    
+
     def setup_slides_panel(self):
         """Setup the left slides panel with modern styling"""
-        # Title
-        slides_label = ctk.CTkLabel(
-            self.slides_frame,
-            text="Your Slides",
-            font=ctk.CTkFont(size=20, weight="bold", family="Inter"),
-            text_color="#ebeaf2"  # Base color for text
-        )
-        slides_label.pack(pady=(20, 10), padx=20, anchor="w")
+        # Header with icon and title
+        header_frame = ctk.CTkFrame(self.slides_frame, fg_color="transparent")
+        header_frame.pack(fill="x", padx=20, pady=(20, 0))
         
-        # Add slide button
+        # Title with modern typography
+        slides_label = ctk.CTkLabel(
+            header_frame,
+            text="📑 Slides",
+            font=ctk.CTkFont(size=24, weight="bold", family="Segoe UI"),
+            text_color=self.colors['text_primary']
+        )
+        slides_label.pack(side="left", anchor="w")
+        
+        # Slide counter
+        self.slide_counter = ctk.CTkLabel(
+            header_frame,
+            text="0",
+            font=ctk.CTkFont(size=14, weight="normal", family="Segoe UI"),
+            text_color=self.colors['text_secondary'],
+            fg_color=self.colors['bg_tertiary'],
+            corner_radius=12,
+            width=30,
+            height=24
+        )
+        self.slide_counter.pack(side="right", anchor="e")
+        
+        # Modern add slide button with hover effect
         add_btn = ctk.CTkButton(
             self.slides_frame,
-            text="New Slide",
+            text="+ New Slide",
             command=self.add_slide,
-            fg_color="#db2859",  # Accent color
-            hover_color="#b52047",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            corner_radius=8,
-            height=40
+            fg_color=self.colors['accent'],
+            hover_color=self.colors['accent_hover'],
+            font=ctk.CTkFont(size=15, weight="bold", family="Segoe UI"),
+            corner_radius=10,
+            height=45,
+            border_width=0
         )
-        add_btn.pack(pady=10, padx=20, fill="x")
+        add_btn.pack(pady=(15, 20), padx=20, fill="x")
         
-        # Scrollable frame for slides
+        # Scrollable frame for slides with custom styling
         self.slides_scroll = ctk.CTkScrollableFrame(
             self.slides_frame,
-            fg_color="#1a191f",  # Secondary color
-            corner_radius=0
+            fg_color="transparent",
+            corner_radius=8,
+            scrollbar_button_color=self.colors['bg_tertiary'],
+            scrollbar_button_hover_color=self.colors['accent']
         )
         self.slides_scroll.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-    
+
     def setup_editor_panel(self):
         """Setup the right editor panel with modern styling"""
         # Configure grid for editor
         self.editor_frame.grid_columnconfigure(0, weight=1)
         self.editor_frame.grid_rowconfigure(0, weight=1)
         
-        # Main content area
-        content_frame = ctk.CTkFrame(self.editor_frame, fg_color="#ebeaf2", corner_radius=8)  # Base color
-        content_frame.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
+        # Main content area with subtle border
+        content_frame = ctk.CTkFrame(
+            self.editor_frame, 
+            fg_color=self.colors['bg_primary'], 
+            corner_radius=12,
+            border_width=1,
+            border_color=self.colors['bg_tertiary']
+        )
+        content_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         content_frame.grid_columnconfigure(0, weight=1)
         content_frame.grid_rowconfigure(0, weight=1)
         
         # Video player / main slide area
-        self.video_player = VideoPlayer(content_frame)  # Secondary color
-        self.video_player.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.video_player = VideoPlayer(content_frame)
+        self.video_player.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         
-        # Slide details panel (right side)
-        self.details_frame = ctk.CTkFrame(self.editor_frame, width=300, fg_color="#1a191f", corner_radius=10)  # Secondary color
-        self.details_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 15), pady=15)
+        # Slide details panel (right side) with modern styling
+        self.details_frame = ctk.CTkFrame(
+            self.editor_frame, 
+            width=320, 
+            fg_color=self.colors['bg_secondary'], 
+            corner_radius=12,
+            border_width=1,
+            border_color=self.colors['bg_tertiary']
+        )
+        self.details_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 20), pady=20)
         self.details_frame.grid_propagate(False)
         
         # Setup details panel
         self.setup_details_panel()
-    
+
     def setup_details_panel(self):
         """Setup the slide details panel with modern styling"""
+        # Header
+        header_frame = ctk.CTkFrame(self.details_frame, fg_color="transparent")
+        header_frame.pack(fill="x", padx=20, pady=(20, 10))
+        
         details_label = ctk.CTkLabel(
-            self.details_frame,
-            text="Slide Properties",
-            font=ctk.CTkFont(size=18, weight="bold", family="Inter"),
-            text_color="#ebeaf2"  # Base color for text
+            header_frame,
+            text="⚙️ Properties",
+            font=ctk.CTkFont(size=20, weight="bold", family="Segoe UI"),
+            text_color=self.colors['text_primary']
         )
-        details_label.pack(pady=(20, 15), padx=20, anchor="w")
+        details_label.pack(side="left", anchor="w")
         
-        # Slide type
-        self.type_label = ctk.CTkLabel(
-            self.details_frame,
-            text="Type:",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            text_color="#ebeaf2"  # Base color for text
-        )
-        self.type_label.pack(anchor="w", padx=20, pady=(0, 5))
+        # Properties container with better spacing
+        props_frame = ctk.CTkFrame(self.details_frame, fg_color="transparent")
+        props_frame.pack(fill="x", padx=20, pady=(0, 20))
         
-        self.type_value = ctk.CTkLabel(
-            self.details_frame,
-            text="None",
-            font=ctk.CTkFont(size=14, family="Inter"),
-            text_color="#db2859"  # Accent color
-        )
-        self.type_value.pack(anchor="w", padx=30, pady=(0, 15))
+        # Property items with modern card styling
+        def create_property_card(parent, label, value_text="None", icon=""):
+            card = ctk.CTkFrame(
+                parent, 
+                fg_color=self.colors['bg_tertiary'], 
+                corner_radius=8,
+                border_width=1,
+                border_color=self.colors['bg_tertiary']
+            )
+            card.pack(fill="x", pady=5)
+            
+            # Label
+            label_widget = ctk.CTkLabel(
+                card,
+                text=f"{icon} {label}",
+                font=ctk.CTkFont(size=13, weight="bold", family="Segoe UI"),
+                text_color=self.colors['text_secondary']
+            )
+            label_widget.pack(anchor="w", padx=15, pady=(10, 2))
+            
+            # Value
+            value_widget = ctk.CTkLabel(
+                card,
+                text=value_text,
+                font=ctk.CTkFont(size=14, family="Segoe UI"),
+                text_color=self.colors['text_primary']
+            )
+            value_widget.pack(anchor="w", padx=15, pady=(0, 10))
+            
+            return value_widget
         
-        # Slide position
-        self.position_label = ctk.CTkLabel(
-            self.details_frame,
-            text="Position:",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            text_color="#ebeaf2"  # Base color for text
-        )
-        self.position_label.pack(anchor="w", padx=20, pady=(0, 5))
+        # Create property cards
+        self.type_value = create_property_card(props_frame, "Type", "None", "📄")
+        self.position_value = create_property_card(props_frame, "Position", "None", "📍")
         
-        self.position_value = ctk.CTkLabel(
-            self.details_frame,
-            text="None",
-            font=ctk.CTkFont(size=14, family="Inter"),
-            text_color="#db2859"  # Accent color
-        )
-        self.position_value.pack(anchor="w", padx=30, pady=(0, 15))
+        # JSON data section with modern styling
+        json_header = ctk.CTkFrame(self.details_frame, fg_color="transparent")
+        json_header.pack(fill="x", padx=20, pady=(10, 5))
         
-        # Slide JSON data
         self.json_label = ctk.CTkLabel(
-            self.details_frame,
-            text="JSON Data:",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            text_color="#ebeaf2"  # Base color for text
+            json_header,
+            text="📋 JSON Data",
+            font=ctk.CTkFont(size=16, weight="bold", family="Segoe UI"),
+            text_color=self.colors['text_primary']
         )
-        self.json_label.pack(anchor="w", padx=20, pady=(0, 5))
+        self.json_label.pack(side="left", anchor="w")
         
+        # JSON textbox with modern styling
         self.json_text = ctk.CTkTextbox(
             self.details_frame,
-            height=250,
-            fg_color="#ebeaf2",  # Base color
-            text_color="#1a191f",  # Secondary color
-            font=ctk.CTkFont(size=12, family="Inter"),
-            corner_radius=8
+            height=300,
+            fg_color=self.colors['bg_tertiary'],
+            text_color=self.colors['text_primary'],
+            font=ctk.CTkFont(size=12, family="Consolas"),
+            corner_radius=8,
+            border_width=1,
+            border_color=self.colors['bg_tertiary'],
+            scrollbar_button_color=self.colors['bg_tertiary'],
+            scrollbar_button_hover_color=self.colors['accent']
         )
         self.json_text.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-    
+
     def setup_control_panel(self):
         """Setup the bottom control panel with modern styling"""
         # Configure grid
         self.control_frame.grid_columnconfigure(0, weight=1)
         
-        # Input frame
-        input_frame = ctk.CTkFrame(self.control_frame, fg_color="#1a191f", corner_radius=0)  # Secondary color
-        input_frame.pack(fill="x", padx=15, pady=10)
-        input_frame.grid_columnconfigure(0, weight=1)
+        # Main container
+        main_container = ctk.CTkFrame(self.control_frame, fg_color="transparent")
+        main_container.pack(fill="both", expand=True, padx=20, pady=15)
+        main_container.grid_columnconfigure(0, weight=1)
         
-        # Query input with send button
-        query_frame = ctk.CTkFrame(input_frame, fg_color="#1a191f")  # Secondary color
-        query_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        query_frame.grid_columnconfigure(0, weight=1)
+        # Query section with modern styling
+        query_section = ctk.CTkFrame(
+            main_container, 
+            fg_color=self.colors['bg_tertiary'], 
+            corner_radius=10,
+            border_width=1,
+            border_color=self.colors['bg_tertiary']
+        )
+        query_section.grid(row=0, column=0, sticky="ew", pady=(0, 15))
+        query_section.grid_columnconfigure(0, weight=1)
+        
+        # Query label
+        query_label = ctk.CTkLabel(
+            query_section,
+            text="💭 AI Query",
+            font=ctk.CTkFont(size=14, weight="bold", family="Segoe UI"),
+            text_color=self.colors['text_secondary']
+        )
+        query_label.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
+        
+        # Query input frame
+        query_input_frame = ctk.CTkFrame(query_section, fg_color="transparent")
+        query_input_frame.grid(row=1, column=0, sticky="ew", padx=15, pady=(0, 15))
+        query_input_frame.grid_columnconfigure(0, weight=1)
         
         self.query_entry = ctk.CTkEntry(
-            query_frame,
-            placeholder_text="Enter your query...",
-            font=ctk.CTkFont(size=14, family="Inter"),
-            fg_color="#ebeaf2",  # Base color
-            text_color="#1a191f",  # Secondary color
+            query_input_frame,
+            placeholder_text="Describe what you want to create or modify...",
+            font=ctk.CTkFont(size=14, family="Segoe UI"),
+            fg_color=self.colors['bg_primary'],
+            text_color=self.colors['text_primary'],
+            placeholder_text_color=self.colors['text_secondary'],
             corner_radius=8,
-            height=40
+            height=40,
+            border_width=1,
+            border_color=self.colors['bg_tertiary']
         )
-        self.query_entry.grid(row=0, column=0, sticky="ew", padx=(10, 5), pady=10)
+        self.query_entry.grid(row=0, column=0, sticky="ew", padx=(0, 10))
         
         send_btn = ctk.CTkButton(
-            query_frame,
-            text="Send",
-            width=80,
+            query_input_frame,
+            text="Send ✈️",
+            width=90,
             command=self.process_query,
-            fg_color="#db2859",  # Accent color
-            hover_color="#b52047",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
+            fg_color=self.colors['accent'],
+            hover_color=self.colors['accent_hover'],
+            font=ctk.CTkFont(size=14, weight="bold", family="Segoe UI"),
             corner_radius=8,
             height=40
         )
-        send_btn.grid(row=0, column=1, padx=(5, 10), pady=10)
+        send_btn.grid(row=0, column=1)
         
-        # Control buttons
-        buttons_frame = ctk.CTkFrame(input_frame, fg_color="#1a191f")  # Secondary color
-        buttons_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 5))
-        
-        # First row of buttons
-        btn_frame1 = ctk.CTkFrame(buttons_frame, fg_color="#1a191f")
-        btn_frame1.pack(fill="x", padx=5, pady=2)
-        
-        render_slide_btn = ctk.CTkButton(
-            btn_frame1,
-            text="Render Slide",
-            command=self.render_current_slide,
-            fg_color="#db2859",  # Accent color
-            hover_color="#b52047",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            corner_radius=8,
-            height=36
+        # Control buttons with modern grid layout
+        buttons_section = ctk.CTkFrame(
+            main_container, 
+            fg_color=self.colors['bg_tertiary'], 
+            corner_radius=10,
+            border_width=1,
+            border_color=self.colors['bg_tertiary']
         )
-        render_slide_btn.pack(side="left", padx=5)
+        buttons_section.grid(row=1, column=0, sticky="ew")
         
-        download_pdf_btn = ctk.CTkButton(
-            btn_frame1,
-            text="Download PDF",
-            fg_color="#db2859",  # Accent color
-            hover_color="#b52047",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            corner_radius=8,
-            height=36
-        )
-        download_pdf_btn.pack(side="left", padx=5)
+        # Button configurations with icons
+        button_configs = [
+            ("🎨 Render Slide", self.render_current_slide, self.colors['success']),
+            ("📄 Download PDF", lambda: None, self.colors['warning']),
+            ("🖼️ Download Image", self.download_image, self.colors['accent']),
+            ("🎥 Download Video", self.download_video, self.colors['accent']),
+            ("🚀 Render All", lambda: None, self.colors['success']),
+            ("🎯 Present", self.start_presentation, self.colors['error']),
+            ("📁 Load Video", self.load_local_video, self.colors['text_secondary'])
+        ]
         
-        img_btn = ctk.CTkButton(
-            btn_frame1,
-            text="Download Image",
-            command=self.download_image,
-            fg_color="#db2859",  # Accent color
-            hover_color="#b52047",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            corner_radius=8,
-            height=36
-        )
-        img_btn.pack(side="left", padx=5)
+        # Create buttons in a grid layout
+        for i, (text, command, color) in enumerate(button_configs):
+            row = i // 4
+            col = i % 4
+            
+            btn = ctk.CTkButton(
+                buttons_section,
+                text=text,
+                command=command,
+                fg_color=color,
+                hover_color=self._darken_color(color),
+                font=ctk.CTkFont(size=13, weight="bold", family="Segoe UI"),
+                corner_radius=8,
+                height=38,
+                width=150
+            )
+            btn.grid(row=row, column=col, padx=8, pady=8, sticky="ew")
         
-        video_btn = ctk.CTkButton(
-            btn_frame1,
-            text="Download Video",
-            command=self.download_video,
-            fg_color="#db2859",  # Accent color
-            hover_color="#b52047",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            corner_radius=8,
-            height=36
-        )
-        video_btn.pack(side="left", padx=5)
-        
-        # Second row of buttons
-        btn_frame2 = ctk.CTkFrame(buttons_frame, fg_color="#1a191f")  # Secondary color
-        btn_frame2.pack(fill="x", padx=5, pady=2)
-        
-        render_all_btn = ctk.CTkButton(
-            btn_frame2,
-            text="Render All Slides",
-            fg_color="#db2859",  # Accent color
-            hover_color="#b52047",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            corner_radius=8,
-            height=36
-        )
-        render_all_btn.pack(side="left", padx=5)
-        
-        present_btn = ctk.CTkButton(
-            btn_frame2,
-            text="Present",
-            command=self.start_presentation,
-            fg_color="#db2859",  # Accent color
-            hover_color="#b52047",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            corner_radius=8,
-            height=36
-        )
-        present_btn.pack(side="left", padx=5)
-        
-        load_video_btn = ctk.CTkButton(
-            btn_frame2,
-            text="Load Local Video",
-            command=self.load_local_video,
-            fg_color="#db2859",  # Accent color
-            hover_color="#b52047",
-            font=ctk.CTkFont(size=14, weight="bold", family="Inter"),
-            corner_radius=8,
-            height=36
-        )
-        load_video_btn.pack(side="left", padx=5)
+        # Configure button section grid
+        for i in range(4):
+            buttons_section.grid_columnconfigure(i, weight=1)
+
+    def _darken_color(self, color):
+        """Helper method to darken a color for hover effects"""
+        color_map = {
+            self.colors['accent']: self.colors['accent_hover'],
+            self.colors['success']: "#059669",
+            self.colors['warning']: "#d97706",
+            self.colors['error']: "#dc2626",
+            self.colors['text_secondary']: "#71717a"
+        }
+        return color_map.get(color, color)
     
     def initialize_presentation(self, presentation_id):
         """Initialize presentation with given ID"""
@@ -365,10 +434,13 @@ class EditorApp(ctk.CTkToplevel):
             widget.destroy()
         self.slide_cards.clear()
         
+        # Update slide counter
+        self.slide_counter.configure(text=str(len(self.slides)))
+        
         # Add slide cards
         for slide in self.slides:
             slide_card = SlideCard(self.slides_scroll, slide, self.select_slide)
-            slide_card.pack(fill="x", pady=2)
+            slide_card.pack(fill="x", pady=3)
             self.slide_cards[slide['slide_id']] = slide_card
     
     def select_slide(self, slide_data):
