@@ -1,0 +1,18 @@
+# Build the Docker image
+docker build -t manim-processor .
+
+# Create the network (if it doesn't exist)
+docker network create classzero-net
+
+# Run the container
+docker run -d --name manim-processor --network classzero-net --restart unless-stopped -v manim-outputs:/app/outputs manim-processor
+
+# Alternative: Using Docker Compose (create docker-compose.yml)
+# docker-compose up -d
+
+# View logs
+docker logs -f manim-processor
+
+# Stop and remove
+docker stop manim-processor
+docker rm manim-processor

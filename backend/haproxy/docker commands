@@ -1,0 +1,1 @@
+docker run -d --name haproxy --restart unless-stopped -p 29110:29110 -p 29111:29111 -p 29112:29112 -p 29113:29113 -v .\haproxy\haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro --network classzero-net haproxy:latest

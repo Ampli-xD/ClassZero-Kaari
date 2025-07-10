@@ -1,0 +1,98 @@
+version: "3.9"
+
+networks:
+  classzero-net:
+    name: classzero-net
+    driver: bridge
+
+services:
+
+  # Reverse Proxy & Load Balancer 
+  haproxy:
+    image: haproxy:latest
+    container_name: haproxy
+    ports:
+      - "29110:29110" # haproxy stats 
+      - "29111:29111" # redis
+      - "29112:29112" # postgres
+      - "29113:29113" # minio
+      - "29114:29114" # n8n
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - redis
+      - postgresql
+      - minio
+      - n8n
+    networks:
+      - classzero-net
+    restart: unless-stopped
+
+  # Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    networks:
+      - classzero-net
+    restart: unless-stopped
+
+  # Bucket Storage
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - classzero-net
+
+  # Relational & Vecto Storage
+  postgresql:
+    image: postgres:15
+    container_name: postgresql
+    volumes:
+      - pgdata_vector:/var/lib/postgresql/data
+    networks:
+      - classzero-net
+    restart: unless-stopped
+
+  # Orchestraion
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - N8N_SECURE_COOKIE=false
+    depends_on:
+      - redis
+      - postgresql
+    networks:
+      - classzero-net
+    restart: unless-stopped
+
+  # Manim Rendering
+  manim-processor:
+    build:
+      context: ./manim_processor
+    container_name: manim-processor
+    volumes:
+      - manim-outputs:/app/outputs
+    depends_on:
+      - redis
+      - postgresql
+      - minio
+    networks:
+      - classzero-net
+    restart: unless-stopped
+
+
+volumes:
+  minio-data:
+    name: minio-data
+  pgdata_vector:
+    name: pgdata_vector
+  n8n_data:
+    name: n8n_data
+  manim-outputs:
+    name: manim-output
