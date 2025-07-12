@@ -1,7 +1,7 @@
 # Kaari - Presentation and Content Management System
 
 ## Overview
-Kaari is a desktop presentation management application built with Python and CustomTkinter. The application provides tools for creating, editing, and managing presentations with a modern, customizable user interface. It connects to a backend server for data persistence and additional processing capabilities.
+Kaari, developed by ClassZero team, is a desktop application built with Python and CustomTkinter, designed for creating, editing, and managing mathematical and educational presentations. Featuring a modern, customizable user interface, Kaari enables users to input natural language queries to generate high-quality slides and animations effortlessly. The application provides tools for organizing presentations, previewing content, and reusing stored assets from a searchable knowledge base. Kaari connects to a backend server powered by microservices, including n8n for workflow automation, PostgreSQL for data persistence, and MinIO for scalable asset storage. This integration ensures seamless processing, rendering, and retrieval of content, making Kaari a practical solution for educators, content creators, and institutions seeking efficient presentation management.
 
 ## Demo Video 
 <h2 align="center">📺 Demo Video</h2>
