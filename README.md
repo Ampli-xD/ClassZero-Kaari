@@ -3,6 +3,15 @@
 ## Overview
 Kaari is a desktop presentation management application built with Python and CustomTkinter. The application provides tools for creating, editing, and managing presentations with a modern, customizable user interface. It connects to a backend server for data persistence and additional processing capabilities.
 
+## Demo Video 
+<h2 align="center">📺 Demo Video</h2>
+<p align="center">
+  <a href="https://youtu.be/gdAw2bSv0mk" target="_blank">
+    <img src="https://img.youtube.com/vi/gdAw2bSv0mk/0.jpg" alt="Watch the video" width="560" />
+  </a>
+</p>
+
+
 ## Backend Architecture
 
 The backend consists of several microservices that work together to provide the necessary functionality. The system uses Docker volumes for persistent data storage across services.
